@@ -101,18 +101,6 @@
 
     /* Answer textarea */
     .answer-wrap { position: relative; }
-    .line-badge {
-      position: absolute;
-      bottom: 10px; right: 10px;
-      font-size: 11px;
-      color: #aaa;
-      background: rgba(255,255,255,.85);
-      padding: 1px 5px;
-      border-radius: 4px;
-      pointer-events: none;
-    }
-    .line-badge.warn { color: #E05500; font-weight: 700; }
-    .line-badge.full { color: #c62828; font-weight: 700; }
 
     .divider { height: 1px; background: #eee; margin: 18px 0; }
 
@@ -203,7 +191,6 @@
 
 <header>
   <h1>자기소개 카드 메이커</h1>
-  <a href="/admin.html">어드민 →</a>
 </header>
 
 <div class="layout">
@@ -211,7 +198,7 @@
   <div class="form-panel">
 
     <div class="field">
-      <label>📸 사진 (필수)</label>
+      <label>📸 사진 <span style="color:#c62828">(필수)</span></label>
       <div class="photo-drop" id="photoDrop">
         <input type="file" id="photoFile" accept="image/*">
         <img class="thumb" id="photoThumb" alt="">
@@ -228,7 +215,7 @@
     <div class="field">
       <label>🏢 부서명</label>
       <textarea id="deptInput" rows="2"
-        placeholder="부서명을 입력하세요&#10;예) Comm CEO Div. / Brand Communication Group"></textarea>
+        placeholder="부서명을 입력하세요"></textarea>
     </div>
 
     <div class="divider"></div>
@@ -237,8 +224,7 @@
       <label>Q1. 자기소개 부탁드려요~</label>
       <div class="answer-wrap">
         <textarea class="ans-ta" id="ans0" rows="4"
-          placeholder="최대 3줄까지 입력 가능합니다"></textarea>
-        <span class="line-badge" id="badge0">0 / 3줄</span>
+          placeholder="자기소개를 입력하세요 최대 두줄까지 입력 가능합니다"></textarea>
       </div>
     </div>
 
@@ -246,8 +232,7 @@
       <label>Q2. 요즘 관심사는 무엇인가요?</label>
       <div class="answer-wrap">
         <textarea class="ans-ta" id="ans1" rows="4"
-          placeholder="최대 3줄까지 입력 가능합니다"></textarea>
-        <span class="line-badge" id="badge1">0 / 3줄</span>
+          placeholder="관심사를 입력하세요 최대 두줄까지 입력 가능합니다"></textarea>
       </div>
     </div>
 
@@ -255,8 +240,7 @@
       <label>Q3. 인생 문구 &amp; 각오 한마디!</label>
       <div class="answer-wrap">
         <textarea class="ans-ta" id="ans2" rows="4"
-          placeholder="최대 3줄까지 입력 가능합니다"></textarea>
-        <span class="line-badge" id="badge2">0 / 3줄</span>
+          placeholder="인생 문구를 입력하세요 최대 두줄까지 입력 가능합니다"></textarea>
       </div>
     </div>
 
@@ -270,11 +254,9 @@
 
   <!-- PREVIEW -->
   <div class="preview-panel">
-    <span class="preview-label">미리보기 (1080 × 1080 px)</span>
     <div class="preview-wrap">
       <canvas id="cvs"></canvas>
     </div>
-    <span class="preview-note">실시간으로 카드를 확인하세요</span>
   </div>
 </div>
 
@@ -308,20 +290,22 @@ const L = {
     color: '#1A1A1A',
   },
   answers: [
-    { x: 128 * SCALE, y: 570 * SCALE, maxW: 452 * SCALE },
-    { x: 128 * SCALE, y: 750 * SCALE, maxW: 452 * SCALE },
-    { x: 128 * SCALE, y: 930 * SCALE, maxW: 452 * SCALE },
+    { x: 128 * SCALE, y: 572 * SCALE, maxW: 722 * SCALE },
+    { x: 128 * SCALE, y: 738 * SCALE, maxW: 722 * SCALE },
+    { x: 128 * SCALE, y: 904 * SCALE, maxW: 722 * SCALE },
   ],
   ansSize: 29 * SCALE,
   ansLineH: 41 * SCALE,
   ansColor: '#1A1A1A',
-  maxLines: 3,
+  maxLines: 2,
+  maxChars: 64,
 };
 
 // ──────────────────────────────────────────────
 // STATE
 // ──────────────────────────────────────────────
 let bgImg = null;
+let clipImg = null;
 let userPhoto = null;
 const canvas = document.getElementById('cvs');
 canvas.width = CANVAS_SIZE;
@@ -335,7 +319,7 @@ const measureCtx = document.createElement('canvas').getContext('2d');
 // INIT
 // ──────────────────────────────────────────────
 async function init() {
-  await Promise.all([loadFonts(), loadBg()]);
+  await Promise.all([loadFonts(), loadBg(), loadClip()]);
   document.getElementById('loadingOverlay').style.display = 'none';
   bindEvents();
   render();
@@ -366,6 +350,15 @@ function loadBg() {
   });
 }
 
+function loadClip() {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => { clipImg = img; resolve(); };
+    img.onerror = () => { console.warn('clip.png 로딩 실패'); resolve(); };
+    img.src = '/clip.png';
+  });
+}
+
 // ──────────────────────────────────────────────
 // EVENTS
 // ──────────────────────────────────────────────
@@ -376,9 +369,8 @@ function bindEvents() {
 
   document.querySelectorAll('.ans-ta').forEach((ta, i) => {
     ta.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        const lines = measureLines(ta.value + '\n', i);
-        if (lines > L.maxLines) e.preventDefault();
+      if ([...ta.value].length >= L.maxChars && e.key !== 'Backspace' && e.key !== 'Delete') {
+        e.preventDefault();
       }
     });
     ta.addEventListener('input', () => {
@@ -438,21 +430,23 @@ function measureLines(text, answerIdx) {
   return total;
 }
 
+function countChars(str) {
+  return [...str].reduce((sum, ch) => sum + (ch === ' ' ? 0.5 : 1), 0);
+}
+
 function enforceLimit(ta, idx) {
-  const badge = document.getElementById(`badge${idx}`);
   let val = ta.value.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-  // Truncate character by character until within limit
-  if (measureLines(val, idx) > L.maxLines) {
-    while (val.length > 0 && measureLines(val, idx) > L.maxLines) {
-      val = [...val].slice(0, -1).join('');
+  if (countChars(val) > L.maxChars) {
+    const chars = [...val];
+    let acc = 0, cut = 0;
+    for (let i = 0; i < chars.length; i++) {
+      acc += chars[i] === ' ' ? 0.5 : 1;
+      if (acc > L.maxChars) { cut = i; break; }
     }
+    val = chars.slice(0, cut).join('');
     ta.value = val;
   }
-
-  const lines = val ? measureLines(val, idx) : 0;
-  badge.textContent = `${lines} / ${L.maxLines}줄`;
-  badge.className = 'line-badge' + (lines >= L.maxLines ? ' full' : lines >= 2 ? ' warn' : '');
 }
 
 // ──────────────────────────────────────────────
@@ -476,6 +470,8 @@ function render() {
   }
 
   if (userPhoto) drawPhoto();
+
+  if (clipImg) ctx.drawImage(clipImg, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
   const name = document.getElementById('nameInput').value.trim();
   if (name) drawName(name);
@@ -574,13 +570,21 @@ function validate() {
   return true;
 }
 
+function getScaledDataURL() {
+  const out = document.createElement('canvas');
+  out.width = 1080;
+  out.height = 1080;
+  out.getContext('2d').drawImage(canvas, 0, 0, 1080, 1080);
+  return out.toDataURL('image/png');
+}
+
 function doDownload() {
   if (!validate()) return;
   render();
   const name = document.getElementById('nameInput').value.trim();
   const a = document.createElement('a');
   a.download = `${name}_자기소개카드.png`;
-  a.href = canvas.toDataURL('image/png');
+  a.href = getScaledDataURL();
   a.click();
 }
 
@@ -594,7 +598,7 @@ async function doSubmit() {
   const btn = document.getElementById('submitBtn');
 
   render();
-  const imageData = canvas.toDataURL('image/png');
+  const imageData = getScaledDataURL();
 
   status.className = 'status ing';
   status.textContent = '⏳ 제출 중...';
