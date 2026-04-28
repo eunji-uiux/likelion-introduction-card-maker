@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>어드민 - 자기소개 카드</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Pretendard', -apple-system, 'Apple SD Gothic Neo', sans-serif;
+      background: #f4f4f4;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    header h1 { font-size: 17px; font-weight: 700; }
+    header a {
+      margin-left: auto;
+      color: rgba(255,255,255,.6);
+      font-size: 13px;
+      text-decoration: none;
+    }
+    header a:hover { color: #fff; }
+
+    /* ── AUTH ── */
+    #authSection {
+      max-width: 380px;
+      margin: 80px auto;
+      background: #fff;
+      border-radius: 14px;
+      padding: 36px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      text-align: center;
+    }
+    #authSection h2 { font-size: 20px; margin-bottom: 24px; }
+    #authSection input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 15px;
+      outline: none;
+      margin-bottom: 12px;
+    }
+    #authSection input:focus { border-color: #1a1a2e; }
+    #authErr { font-size: 13px; color: #c62828; margin-top: 8px; display: none; }
+
+    /* ── ADMIN PANEL ── */
+    #adminPanel { display: none; }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 20px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .toolbar-title { font-size: 16px; font-weight: 700; }
+    .toolbar-title span { color: #E05500; }
+    .toolbar-right { margin-left: auto; display: flex; gap: 10px; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,.1); }
+
+    .card-img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      display: block;
+      background: #eee;
+    }
+    .card-img-placeholder {
+      width: 100%;
+      aspect-ratio: 1;
+      background: #f0f0f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      color: #ccc;
+    }
+
+    .card-info { padding: 14px; }
+    .card-name { font-size: 17px; font-weight: 700; margin-bottom: 3px; }
+    .card-dept { font-size: 12px; color: #777; margin-bottom: 3px; white-space: pre-line; }
+    .card-date { font-size: 11px; color: #bbb; margin-bottom: 12px; }
+
+    .card-actions { display: flex; gap: 8px; }
+
+    .empty {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 80px 20px;
+      color: #bbb;
+    }
+    .empty .icon { font-size: 48px; margin-bottom: 14px; }
+    .empty p { font-size: 15px; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      padding: 9px 16px;
+      border: none;
+      border-radius: 7px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-dark { background: #1a1a2e; color: #fff; }
+    .btn-dark:hover { background: #111; }
+    .btn-ghost { background: #f0f0f0; color: #333; }
+    .btn-ghost:hover { background: #e0e0e0; }
+    .btn-dl { background: #e8f5e9; color: #2e7d32; }
+    .btn-dl:hover { background: #c8e6c9; }
+    .btn-del { background: #ffebee; color: #c62828; }
+    .btn-del:hover { background: #ffcdd2; }
+
+    /* lightbox */
+    #lightbox {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.8);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 8px;
+      object-fit: contain;
+    }
+    #lightbox .close-btn {
+      position: absolute;
+      top: 20px; right: 24px;
+      color: #fff;
+      font-size: 28px;
+      cursor: pointer;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🔐 어드민 — 자기소개 카드 관리</h1>
+  <a href="/">← 카드 메이커</a>
+</header>
+
+<!-- AUTH -->
+<div id="authSection">
+  <h2>어드민 로그인</h2>
+  <input type="password" id="pwInput" placeholder="비밀번호를 입력하세요" autocomplete="current-password">
+  <button class="btn btn-dark" style="width:100%; padding:12px;" onclick="login()">로그인</button>
+  <div id="authErr">비밀번호가 틀렸습니다.</div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel">
+  <div class="container">
+    <div class="toolbar">
+      <div class="toolbar-title">
+        전체 카드&nbsp;<span id="totalCount">0</span>개
+      </div>
+      <div class="toolbar-right">
+        <button class="btn btn-ghost" onclick="load()">🔄 새로고침</button>
+        <button class="btn btn-dark" onclick="downloadAll()">⬇️ 전체 다운로드</button>
+      </div>
+    </div>
+    <div class="grid" id="cardsGrid">
+      <div class="empty">
+        <div class="icon">📭</div>
+        <p>제출된 카드가 없습니다</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="closeLightbox()">
+  <span class="close-btn" onclick="closeLightbox()">✕</span>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+<script>
+let adminPw = '';
+let submissions = [];
+
+document.getElementById('pwInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') login();
+});
+
+async function login() {
+  const pw = document.getElementById('pwInput').value;
+  try {
+    const res = await fetch('/api/admin/submissions', {
+      headers: { 'x-admin-password': pw }
+    });
+    if (!res.ok) throw new Error();
+    adminPw = pw;
+    document.getElementById('authSection').style.display = 'none';
+    document.getElementById('adminPanel').style.display = 'block';
+    submissions = await res.json();
+    render();
+  } catch {
+    document.getElementById('authErr').style.display = 'block';
+  }
+}
+
+async function load() {
+  const res = await fetch('/api/admin/submissions', {
+    headers: { 'x-admin-password': adminPw }
+  });
+  submissions = await res.json();
+  render();
+}
+
+function render() {
+  document.getElementById('totalCount').textContent = submissions.length;
+  const grid = document.getElementById('cardsGrid');
+
+  if (submissions.length === 0) {
+    grid.innerHTML = `
+      <div class="empty">
+        <div class="icon">📭</div>
+        <p>제출된 카드가 없습니다</p>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = submissions.map(s => {
+    const imgSrc = `/api/admin/submissions/${s.id}/card.png?pw=${enc(adminPw)}`;
+    const dlHref = `/api/admin/submissions/${s.id}/card.png?pw=${enc(adminPw)}&dl=1`;
+    const date   = fmtDate(s.createdAt);
+
+    return `
+      <div class="card" id="card-${s.id}">
+        <img class="card-img"
+          src="${imgSrc}"
+          alt="${esc(s.name)} 카드"
+          loading="lazy"
+          onclick="openLightbox('${imgSrc}')"
+          style="cursor:zoom-in;">
+        <div class="card-info">
+          <div class="card-name">${esc(s.name)}</div>
+          <div class="card-dept">${esc(s.department || '')}</div>
+          <div class="card-date">${date}</div>
+          <div class="card-actions">
+            <a href="${dlHref}" download="${esc(s.name)}_card.png" class="btn btn-dl">⬇️ 다운로드</a>
+            <button class="btn btn-del" onclick="del('${s.id}')">🗑 삭제</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function del(id) {
+  if (!confirm('이 카드를 삭제하시겠습니까?')) return;
+  try {
+    const res = await fetch(`/api/admin/submissions/${id}`, {
+      method: 'DELETE',
+      headers: { 'x-admin-password': adminPw }
+    });
+    if (!res.ok) throw new Error();
+    submissions = submissions.filter(s => s.id !== id);
+    render();
+  } catch {
+    alert('삭제에 실패했습니다.');
+  }
+}
+
+async function downloadAll() {
+  if (submissions.length === 0) { alert('다운로드할 카드가 없습니다.'); return; }
+  for (const s of submissions) {
+    const a = document.createElement('a');
+    a.href = `/api/admin/submissions/${s.id}/card.png?pw=${enc(adminPw)}&dl=1`;
+    a.download = `${s.name}_자기소개카드.png`;
+    a.click();
+    await new Promise(r => setTimeout(r, 400)); // 브라우저 다운로드 간격
+  }
+}
+
+function openLightbox(src) {
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+
+function fmtDate(iso) {
+  return new Date(iso).toLocaleString('ko-KR', {
+    year: 'numeric', month: 'long', day: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function enc(str) { return encodeURIComponent(str); }
+</script>
+</body>
+</html>

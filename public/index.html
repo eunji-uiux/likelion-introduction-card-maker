@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>자기소개 카드 메이커</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Pretendard', -apple-system, 'Apple SD Gothic Neo', sans-serif;
+      background: #f4f4f4;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #E05500;
+      color: #fff;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+    }
+    header h1 { font-size: 18px; font-weight: 700; }
+    header a {
+      margin-left: auto;
+      color: rgba(255,255,255,0.75);
+      font-size: 13px;
+      text-decoration: none;
+    }
+    header a:hover { color: #fff; }
+
+    .layout {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 20px;
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* ── FORM ── */
+    .form-panel {
+      background: #fff;
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.07);
+    }
+
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #555;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+
+    .field input,
+    .field textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      color: #111;
+      outline: none;
+      transition: border-color .15s;
+      resize: none;
+    }
+    .field input:focus,
+    .field textarea:focus { border-color: #E05500; }
+
+    /* Photo upload */
+    .photo-drop {
+      border: 2px dashed #ddd;
+      border-radius: 10px;
+      padding: 20px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .photo-drop:hover { border-color: #E05500; background: #fff8f3; }
+    .photo-drop input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    }
+    .photo-drop img.thumb {
+      width: 72px; height: 72px;
+      border-radius: 8px;
+      object-fit: cover;
+      margin-bottom: 6px;
+      display: none;
+    }
+    .photo-drop .icon { font-size: 32px; margin-bottom: 6px; }
+    .photo-drop .hint { font-size: 12px; color: #888; }
+
+    /* Answer textarea */
+    .answer-wrap { position: relative; }
+    .line-badge {
+      position: absolute;
+      bottom: 10px; right: 10px;
+      font-size: 11px;
+      color: #aaa;
+      background: rgba(255,255,255,.85);
+      padding: 1px 5px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+    .line-badge.warn { color: #E05500; font-weight: 700; }
+    .line-badge.full { color: #c62828; font-weight: 700; }
+
+    .divider { height: 1px; background: #eee; margin: 18px 0; }
+
+    .actions { display: flex; gap: 10px; margin-top: 20px; }
+    .btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 9px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s, opacity .15s;
+    }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-outline {
+      background: #f0f0f0;
+      color: #333;
+    }
+    .btn-outline:hover:not(:disabled) { background: #e0e0e0; }
+    .btn-primary {
+      background: #E05500;
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) { background: #c44c00; }
+
+    .status {
+      margin-top: 14px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+    }
+    .status.ok  { background: #e8f5e9; color: #2e7d32; display: block; }
+    .status.err { background: #ffebee; color: #c62828; display: block; }
+    .status.ing { background: #fff8e1; color: #795548; display: block; }
+
+    /* ── PREVIEW ── */
+    .preview-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .preview-label { font-size: 12px; font-weight: 700; color: #888; letter-spacing: .5px; }
+    .preview-wrap {
+      width: 100%;
+      max-width: 520px;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 6px 24px rgba(0,0,0,.15);
+      background: #ddd;
+    }
+    #cvs { width: 100%; display: block; }
+    .preview-note { font-size: 11px; color: #aaa; }
+
+    #loadingOverlay {
+      position: fixed; inset: 0;
+      background: rgba(255,255,255,.85);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 12px;
+      font-size: 15px;
+      color: #555;
+      z-index: 99;
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #eee;
+      border-top-color: #E05500;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <span>리소스 로딩 중...</span>
+</div>
+
+<header>
+  <h1>자기소개 카드 메이커</h1>
+  <a href="/admin.html">어드민 →</a>
+</header>
+
+<div class="layout">
+  <!-- FORM -->
+  <div class="form-panel">
+
+    <div class="field">
+      <label>📸 사진 (필수)</label>
+      <div class="photo-drop" id="photoDrop">
+        <input type="file" id="photoFile" accept="image/*">
+        <img class="thumb" id="photoThumb" alt="">
+        <div class="icon" id="photoIcon">📷</div>
+        <div class="hint" id="photoHint">클릭하여 사진 업로드</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>👤 이름</label>
+      <input type="text" id="nameInput" placeholder="이름을 입력하세요" maxlength="12">
+    </div>
+
+    <div class="field">
+      <label>🏢 부서명</label>
+      <textarea id="deptInput" rows="2"
+        placeholder="부서명을 입력하세요&#10;예) Comm CEO Div. / Brand Communication Group"></textarea>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <label>Q1. 자기소개 부탁드려요~</label>
+      <div class="answer-wrap">
+        <textarea class="ans-ta" id="ans0" rows="4"
+          placeholder="최대 3줄까지 입력 가능합니다"></textarea>
+        <span class="line-badge" id="badge0">0 / 3줄</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Q2. 요즘 관심사는 무엇인가요?</label>
+      <div class="answer-wrap">
+        <textarea class="ans-ta" id="ans1" rows="4"
+          placeholder="최대 3줄까지 입력 가능합니다"></textarea>
+        <span class="line-badge" id="badge1">0 / 3줄</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Q3. 인생 문구 &amp; 각오 한마디!</label>
+      <div class="answer-wrap">
+        <textarea class="ans-ta" id="ans2" rows="4"
+          placeholder="최대 3줄까지 입력 가능합니다"></textarea>
+        <span class="line-badge" id="badge2">0 / 3줄</span>
+      </div>
+    </div>
+
+    <div id="statusMsg" class="status"></div>
+
+    <div class="actions">
+      <button class="btn btn-outline" id="dlBtn">💾 다운로드</button>
+      <button class="btn btn-primary" id="submitBtn">📤 제출하기</button>
+    </div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="preview-panel">
+    <span class="preview-label">미리보기 (1080 × 1080 px)</span>
+    <div class="preview-wrap">
+      <canvas id="cvs"></canvas>
+    </div>
+    <span class="preview-note">실시간으로 카드를 확인하세요</span>
+  </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+// LAYOUT CONSTANTS  (2x 해상도 기준 — 2160×2160 캔버스)
+// 배경 이미지가 1080×1080이면 SCALE = 1 로 변경
+// ──────────────────────────────────────────────
+const SCALE = 2; // 배경 이미지 배율 (2x = 2160×2160)
+const CANVAS_SIZE = 1080 * SCALE;
+
+const L = {
+  photo: {
+    cx: 686 * SCALE,
+    cy: 280 * SCALE,
+    size: 334 * SCALE,
+    rot: 9 * Math.PI / 180,
+  },
+  name: {
+    cx: 126 * SCALE,
+    cy: 244 * SCALE,
+    sizeNormal: 54 * SCALE,
+    sizeLong: 44 * SCALE,
+    color: '#1A1A1A',
+  },
+  dept: {
+    x: 128 * SCALE,
+    y: 320 * SCALE,
+    lineH: 27.5 * SCALE,  // 22px * 125%
+    size: 22 * SCALE,
+    color: '#1A1A1A',
+  },
+  answers: [
+    { x: 128 * SCALE, y: 570 * SCALE, maxW: 452 * SCALE },
+    { x: 128 * SCALE, y: 750 * SCALE, maxW: 452 * SCALE },
+    { x: 128 * SCALE, y: 930 * SCALE, maxW: 452 * SCALE },
+  ],
+  ansSize: 29 * SCALE,
+  ansLineH: 41 * SCALE,
+  ansColor: '#1A1A1A',
+  maxLines: 3,
+};
+
+// ──────────────────────────────────────────────
+// STATE
+// ──────────────────────────────────────────────
+let bgImg = null;
+let userPhoto = null;
+const canvas = document.getElementById('cvs');
+canvas.width = CANVAS_SIZE;
+canvas.height = CANVAS_SIZE;
+const ctx = canvas.getContext('2d');
+
+// Measure canvas (same font settings as render) for line counting
+const measureCtx = document.createElement('canvas').getContext('2d');
+
+// ──────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────
+async function init() {
+  await Promise.all([loadFonts(), loadBg()]);
+  document.getElementById('loadingOverlay').style.display = 'none';
+  bindEvents();
+  render();
+}
+
+async function loadFonts() {
+  try {
+    const defs = [
+      ['Pretendard', '500', 'https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Medium.woff2'],
+      ['Pretendard', '800', 'https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-ExtraBold.woff2'],
+      ['SUITE',      '800', 'https://cdn.jsdelivr.net/gh/sunn-us/SUITE@main/fonts/static/woff2/SUITE-ExtraBold.woff2'],
+    ];
+    await Promise.all(defs.map(([fam, w, url]) => {
+      const f = new FontFace(fam, `url(${url})`, { weight: w });
+      return f.load().then(loaded => document.fonts.add(loaded));
+    }));
+  } catch (e) {
+    console.warn('폰트 로딩 부분 실패 (시스템 폰트로 대체):', e);
+  }
+}
+
+function loadBg() {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => { bgImg = img; resolve(); };
+    img.onerror = () => { console.warn('background.png 로딩 실패'); resolve(); };
+    img.src = '/background.png';
+  });
+}
+
+// ──────────────────────────────────────────────
+// EVENTS
+// ──────────────────────────────────────────────
+function bindEvents() {
+  document.getElementById('photoFile').addEventListener('change', onPhotoChange);
+  document.getElementById('nameInput').addEventListener('input', render);
+  document.getElementById('deptInput').addEventListener('input', render);
+
+  document.querySelectorAll('.ans-ta').forEach((ta, i) => {
+    ta.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const lines = measureLines(ta.value + '\n', i);
+        if (lines > L.maxLines) e.preventDefault();
+      }
+    });
+    ta.addEventListener('input', () => {
+      enforceLimit(ta, i);
+      render();
+    });
+  });
+
+  document.getElementById('dlBtn').addEventListener('click', doDownload);
+  document.getElementById('submitBtn').addEventListener('click', doSubmit);
+}
+
+function onPhotoChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      userPhoto = img;
+      const thumb = document.getElementById('photoThumb');
+      thumb.src = ev.target.result;
+      thumb.style.display = 'block';
+      document.getElementById('photoIcon').style.display = 'none';
+      document.getElementById('photoHint').textContent = '클릭하여 사진 변경';
+      render();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ──────────────────────────────────────────────
+// LINE COUNTING & ENFORCEMENT
+// ──────────────────────────────────────────────
+function measureLines(text, answerIdx) {
+  if (!text) return 0;
+  const maxW = L.answers[answerIdx].maxW;
+  measureCtx.font = `500 ${L.ansSize}px Pretendard, sans-serif`;
+  measureCtx.letterSpacing = '-0.02em';
+
+  let total = 0;
+  for (const para of text.split('\n')) {
+    if (para === '') { total++; continue; }
+    let cur = '';
+    for (const ch of para) {
+      const test = cur + ch;
+      if (measureCtx.measureText(test).width > maxW && cur) {
+        total++;
+        cur = ch;
+      } else {
+        cur = test;
+      }
+    }
+    total++;
+  }
+  return total;
+}
+
+function enforceLimit(ta, idx) {
+  const badge = document.getElementById(`badge${idx}`);
+  let val = ta.value.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // Truncate character by character until within limit
+  if (measureLines(val, idx) > L.maxLines) {
+    while (val.length > 0 && measureLines(val, idx) > L.maxLines) {
+      val = [...val].slice(0, -1).join('');
+    }
+    ta.value = val;
+  }
+
+  const lines = val ? measureLines(val, idx) : 0;
+  badge.textContent = `${lines} / ${L.maxLines}줄`;
+  badge.className = 'line-badge' + (lines >= L.maxLines ? ' full' : lines >= 2 ? ' warn' : '');
+}
+
+// ──────────────────────────────────────────────
+// CANVAS RENDERING
+// ──────────────────────────────────────────────
+function render() {
+  ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+  // Background
+  if (bgImg) {
+    ctx.drawImage(bgImg, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  } else {
+    // Fallback placeholder
+    ctx.fillStyle = '#E05500';
+    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(55 * SCALE, 100 * SCALE, 820 * SCALE, 950 * SCALE);
+    ctx.strokeStyle = '#E05500';
+    ctx.lineWidth = 3 * SCALE;
+    ctx.strokeRect(62 * SCALE, 148 * SCALE, 253 * SCALE, 100 * SCALE);
+  }
+
+  if (userPhoto) drawPhoto();
+
+  const name = document.getElementById('nameInput').value.trim();
+  if (name) drawName(name);
+
+  const dept = document.getElementById('deptInput').value.trim();
+  if (dept) drawDept(dept);
+
+  for (let i = 0; i < 3; i++) {
+    const text = document.getElementById(`ans${i}`).value.trim();
+    if (text) drawAnswer(text, i);
+  }
+}
+
+function drawPhoto() {
+  const { cx, cy, size, rot } = L.photo;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rot);
+  ctx.beginPath();
+  ctx.rect(-size / 2, -size / 2, size, size);
+  ctx.clip();
+  // Cover fit
+  const img = userPhoto;
+  const scale = Math.max(size / img.width, size / img.height);
+  const w = img.width * scale;
+  const h = img.height * scale;
+  ctx.drawImage(img, -w / 2, -h / 2, w, h);
+  ctx.restore();
+}
+
+function drawName(name) {
+  const { cx, cy, sizeNormal, sizeLong, color } = L.name;
+  const fontSize = name.length >= 4 ? sizeLong : sizeNormal;
+  ctx.save();
+  ctx.font = `800 ${fontSize}px SUITE, 'Apple SD Gothic Neo', sans-serif`;
+  ctx.letterSpacing = '-0.02em';
+  ctx.fillStyle = color;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(name, cx, cy);
+  ctx.restore();
+}
+
+function drawDept(dept) {
+  const { x, y, lineH, size, color } = L.dept;
+  const lines = dept.split('\n').filter(l => l.trim());
+  ctx.save();
+  ctx.font = `500 ${size}px Pretendard, sans-serif`;
+  ctx.letterSpacing = '-0.02em';
+  ctx.fillStyle = color;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  lines.forEach((line, i) => ctx.fillText(line, x, y + i * lineH));
+  ctx.restore();
+}
+
+function drawAnswer(text, idx) {
+  const { x, y, maxW } = L.answers[idx];
+  ctx.save();
+  ctx.font = `500 ${L.ansSize}px Pretendard, sans-serif`;
+  ctx.letterSpacing = '-0.02em';
+  ctx.fillStyle = L.ansColor;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  wrapDraw(ctx, text, x, y, maxW, L.ansLineH, L.maxLines);
+  ctx.restore();
+}
+
+function wrapDraw(c, text, x, y, maxW, lineH, maxLines) {
+  const lines = [];
+  for (const para of text.split('\n')) {
+    if (lines.length >= maxLines) break;
+    if (para === '') { lines.push(''); continue; }
+    let cur = '';
+    for (const ch of para) {
+      const test = cur + ch;
+      if (c.measureText(test).width > maxW && cur) {
+        lines.push(cur);
+        cur = ch;
+        if (lines.length >= maxLines) break;
+      } else {
+        cur = test;
+      }
+    }
+    if (cur && lines.length < maxLines) lines.push(cur);
+  }
+  lines.slice(0, maxLines).forEach((line, i) => c.fillText(line, x, y + i * lineH));
+}
+
+// ──────────────────────────────────────────────
+// DOWNLOAD
+// ──────────────────────────────────────────────
+function validate() {
+  if (!userPhoto) { alert('사진을 업로드해주세요.'); return false; }
+  if (!document.getElementById('nameInput').value.trim()) { alert('이름을 입력해주세요.'); return false; }
+  return true;
+}
+
+function doDownload() {
+  if (!validate()) return;
+  render();
+  const name = document.getElementById('nameInput').value.trim();
+  const a = document.createElement('a');
+  a.download = `${name}_자기소개카드.png`;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+// ──────────────────────────────────────────────
+// SUBMIT
+// ──────────────────────────────────────────────
+async function doSubmit() {
+  if (!validate()) return;
+
+  const status = document.getElementById('statusMsg');
+  const btn = document.getElementById('submitBtn');
+
+  render();
+  const imageData = canvas.toDataURL('image/png');
+
+  status.className = 'status ing';
+  status.textContent = '⏳ 제출 중...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: document.getElementById('nameInput').value.trim(),
+        department: document.getElementById('deptInput').value.trim(),
+        answers: [0, 1, 2].map(i => document.getElementById(`ans${i}`).value.trim()),
+        image: imageData,
+      }),
+    });
+
+    if (!res.ok) throw new Error('서버 오류');
+
+    status.className = 'status ok';
+    status.textContent = '✅ 카드가 성공적으로 제출되었습니다!';
+
+    // Also trigger download
+    const name = document.getElementById('nameInput').value.trim();
+    const a = document.createElement('a');
+    a.download = `${name}_자기소개카드.png`;
+    a.href = imageData;
+    a.click();
+
+  } catch {
+    status.className = 'status err';
+    status.textContent = '❌ 제출 실패. 다시 시도해주세요.';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ──────────────────────────────────────────────
+// START
+// ──────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
